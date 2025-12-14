@@ -1219,7 +1219,7 @@ def show_project_selector(data):
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("### Apne eksisterende prosjekt")
+        st.markdown("### Åpne eksisterende prosjekt")
         if data['initiatives']:
             project_names = {init_id: init['name'] for init_id, init in data['initiatives'].items()}
             selected_project = st.selectbox("Velg prosjekt", options=list(project_names.keys()), format_func=lambda x: project_names[x])
@@ -1227,14 +1227,14 @@ def show_project_selector(data):
             has_code = initiative.get('access_code', '') != ''
             if has_code:
                 entered_code = st.text_input("Tilgangskode", type="password", key="access_code_input")
-                if st.button("Apne prosjekt", use_container_width=True):
+                if st.button("Åpne prosjekt", use_container_width=True):
                     if entered_code == initiative.get('access_code', ''):
                         st.session_state['current_project'] = selected_project
                         st.rerun()
                     else:
                         st.error("Feil tilgangskode")
             else:
-                if st.button("Apne prosjekt", use_container_width=True):
+                if st.button("Åpne prosjekt", use_container_width=True):
                     st.session_state['current_project'] = selected_project
                     st.rerun()
         else:

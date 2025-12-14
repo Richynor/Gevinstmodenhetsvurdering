@@ -819,8 +819,8 @@ def generate_html_report(initiative, stats):
             angle = (2 * math.pi * i / n) - math.pi / 2
             x = cx + (radius + 45) * math.cos(angle)
             y = cy + (radius + 45) * math.sin(angle)
-            label = cat[:18] + "..." if len(cat) > 18 else cat
-            svg += f'<text x="{x}" y="{y}" text-anchor="middle" font-size="13" fill="#172141">{label}</text>'
+            label = cat[:15] + "..." if len(cat) > 15 else cat
+            svg += f'<text x="{x}" y="{y}" text-anchor="middle" font-size="11" fill="#172141" font-weight="500">{label}</text>'
         if title:
             svg += f'<text x="{cx}" y="22" text-anchor="middle" font-size="16" font-weight="bold" fill="#172141">{title}</text>'
         svg += '</svg>'
@@ -877,8 +877,6 @@ def generate_html_report(initiative, stats):
         .metric-value {{ font-size: 2.4rem; font-weight: 700; color: #0053A6; }}
         .metric-label {{ font-size: 1rem; color: #666; text-transform: uppercase; }}
         .charts-row {{ display: flex; gap: 30px; margin: 30px 0 50px 0; flex-wrap: wrap; justify-content: center; }}
-        h3 { margin-top: 40px; margin-bottom: 20px; }
-        .charts-row { display: flex; gap: 30px; margin: 30px 0 40px 0; flex-wrap: wrap; justify-content: center; }
         .chart-container {{ flex: 1; min-width: 350px; max-width: 500px; text-align: center; }}
         .item {{ padding: 12px 16px; margin: 8px 0; border-radius: 6px; font-size: 1.05rem; }}
         .item-strength {{ background: #DDFAE2; border-left: 4px solid #35DE6D; }}

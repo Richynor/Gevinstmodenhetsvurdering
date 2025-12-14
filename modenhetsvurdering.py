@@ -745,7 +745,7 @@ def create_improvement_bar_chart(items, max_items=8):
     labels = [f"{item['phase'][:4]}: {item['title'][:35]}..." if len(item['title']) > 35 else f"{item['phase'][:4]}: {item['title']}" for item in items]
     scores = [item['score'] for item in items]
     fig = go.Figure(data=[go.Bar(x=scores, y=labels, orientation='h', marker_color=COLORS['danger'], text=[f"{s:.1f}" for s in scores], textposition='outside', textfont=dict(size=16))])
-    fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=12)), yaxis=dict(autorange="reversed", tickfont=dict(size=11)), height=max(350, len(items) * 50), margin=dict(l=280, r=60, t=20, b=40), font=dict(size=12))
+    fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=12)), yaxis=dict(autorange="reversed", tickfont=dict(size=11)), height=max(350, len(labels) * 50), margin=dict(l=280, r=60, t=20, b=40), font=dict(size=12))
     return fig
 
 def create_parameter_bar_chart(param_data):
@@ -755,7 +755,7 @@ def create_parameter_bar_chart(param_data):
     scores = [param_data[p]['avg'] for p in labels]
     colors = [COLORS['success'] if s >= 4 else COLORS['primary_light'] if s >= 3 else COLORS['warning'] if s >= 2 else COLORS['danger'] for s in scores]
     fig = go.Figure(data=[go.Bar(x=scores, y=labels, orientation='h', marker_color=colors, text=[f"{s:.2f}" for s in scores], textposition='outside', textfont=dict(size=15))])
-    fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=12)), yaxis=dict(autorange="reversed", tickfont=dict(size=11)), height=max(350, len(items) * 50), margin=dict(l=280, r=60, t=20, b=40), font=dict(size=12))
+    fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=12)), yaxis=dict(autorange="reversed", tickfont=dict(size=11)), height=max(350, len(labels) * 50), margin=dict(l=280, r=60, t=20, b=40), font=dict(size=12))
     return fig
 
 def create_phase_bar_chart(phase_data):

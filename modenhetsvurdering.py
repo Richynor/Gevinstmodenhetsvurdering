@@ -865,7 +865,7 @@ def generate_html_report(initiative, stats):
         body {{ font-family: 'Source Sans Pro', Arial, sans-serif; padding: 40px; max-width: 1200px; margin: 0 auto; color: #172141; line-height: 1.7; font-size: 16px; }}
         h1 {{ color: #172141; text-align: center; margin-bottom: 5px; font-size: 2rem; }}
         h2 {{ color: #0053A6; border-bottom: 2px solid #64C8FA; padding-bottom: 8px; margin-top: 40px; font-size: 1.6rem; }}
-        h3 {{ color: #0053A6; margin-top: 50px; margin-bottom: 25px; font-size: 1.3rem; }}
+        h3 {{ color: #0053A6; margin-top: 60px; margin-bottom: 30px; font-size: 1.3rem; }}
         h4 {{ color: #172141; margin-top: 20px; font-size: 1.15rem; }}
         .subtitle {{ text-align: center; color: #0053A6; margin-bottom: 30px; font-size: 1.1rem; }}
         table {{ width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 1rem; }}

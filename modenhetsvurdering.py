@@ -190,8 +190,8 @@ questions_data = {
         {"id": 3, "title": "Gevinstkart og visualisering", "question": "Er gevinstene synliggjort i gevinstkartet, med tydelig sammenheng mellom tiltak, effekter og mål?", "scale": ["Niva 1: Gevinstkart finnes ikke eller er utdatert.", "Niva 2: Et foreløpig gevinstkart eksisterer, men dekker ikke hele området.", "Niva 3: Kartet inkluderer hovedgevinster, men mangler validering og detaljer.", "Niva 4: Kartet er brukt aktivt i planlegging og oppfølging.", "Niva 5: Gevinstkartet oppdateres kontinuerlig og er integrert i styringsdialoger."]},
         {"id": 4, "title": "Strategisk kobling og KPI-er", "question": "Er gevinstene tydelig knyttet til strategiske mål og eksisterende KPI-er?", "scale": ["Niva 1: Ingen kobling mellom gevinster og strategi eller KPI-er.", "Niva 2: Kobling er antatt, men ikke dokumentert.", "Niva 3: Kobling er etablert for enkelte KPI-er, men ikke konsistent.", "Niva 4: Tydelig kobling mellom gevinster og relevante KPI-er.", "Niva 5: Koblingen følges opp i styringssystem og rapportering."]},
         {"id": 5, "title": "Avgrensning av programgevinst", "question": "Er det tydelig avklart hvilke effekter som stammer fra programmet versus andre tiltak eller økte rammer?", "scale": ["Niva 1: Ingen skille mellom program- og eksterne effekter.", "Niva 2: Delvis omtalt, men uklart hva som er innenfor programmet.", "Niva 3: Avgrensning er gjort i plan, men ikke dokumentert grundig.", "Niva 4: Avgrensning er dokumentert og anvendt i beregninger.", "Niva 5: Effektisolering er standard praksis og brukes systematisk."]},
-        {"id": 6, "title": "Nullpunkter og estimater", "question": "Er nullpunkter og estimater etablert, testet og dokumentert pa en konsistent og troverdig mate?", "scale": ["Niva 1: Nullpunkter mangler eller bygger pa uprøvde antagelser.", "Niva 2: Enkelte nullpunkter finnes, men uten felles metode.", "Niva 3: Nullpunkter og estimater er definert, men med høy usikkerhet.", "Niva 4: Nullpunkter og estimater er basert pa testede data og validerte metoder.", "Niva 5: Nullpunkter og estimater kvalitetssikres jevnlig og brukes aktivt til læring."]},
-        {"id": 7, "title": "Hypotesetesting og datagrunnlag", "question": "Finnes formell prosess for hypotesetesting pa representative caser?", "scale": ["Niva 1: Ikke etablert/uklart; ingen dokumenterte praksiser.", "Niva 2: Delvis definert; uformell praksis uten forankring/validering.", "Niva 3: Etablert for deler av området; variabel kvalitet.", "Niva 4: Godt forankret og systematisk anvendt; måles og følges opp.", "Niva 5: Fullt integrert i styring; kontinuerlig forbedring og læring."]},
+        {"id": 6, "title": "Nullpunkter og estimater", "question": "Er nullpunkter og estimater etablert, testet og dokumentert på en konsistent og troverdig mate?", "scale": ["Niva 1: Nullpunkter mangler eller bygger på uprøvde antagelser.", "Niva 2: Enkelte nullpunkter finnes, men uten felles metode.", "Niva 3: Nullpunkter og estimater er definert, men med høy usikkerhet.", "Niva 4: Nullpunkter og estimater er basert på testede data og validerte metoder.", "Niva 5: Nullpunkter og estimater kvalitetssikres jevnlig og brukes aktivt til læring."]},
+        {"id": 7, "title": "Hypotesetesting og datagrunnlag", "question": "Finnes formell prosess for hypotesetesting på representative caser?", "scale": ["Niva 1: Ikke etablert/uklart; ingen dokumenterte praksiser.", "Niva 2: Delvis definert; uformell praksis uten forankring/validering.", "Niva 3: Etablert for deler av området; variabel kvalitet.", "Niva 4: Godt forankret og systematisk anvendt; måles og følges opp.", "Niva 5: Fullt integrert i styring; kontinuerlig forbedring og læring."]},
         {"id": 8, "title": "Interessentengasjement", "question": "Ble relevante interessenter involvert i utarbeidelsen av gevinstgrunnlag?", "scale": ["Niva 1: Ingen involvering av interessenter.", "Niva 2: Begrenset og ustrukturert involvering.", "Niva 3: Bred deltakelse, men uten systematisk prosess.", "Niva 4: Systematisk og koordinert involvering med klar rollefordeling.", "Niva 5: Kontinuerlig engasjement med dokumentert medvirkning."]},
         {"id": 9, "title": "Gevinstforutsetninger", "question": "Er alle vesentlige forutsetninger ivaretatt for a muliggjøre gevinstrealisering?", "scale": ["Niva 1: Ingen kartlegging av gevinstforutsetninger.", "Niva 2: Noen forutsetninger er identifisert, men ikke systematisk dokumentert.", "Niva 3: Hovedforutsetninger er dokumentert, men uten klar eierskap.", "Niva 4: Alle kritiske forutsetninger er kartlagt med tildelt ansvar.", "Niva 5: Gevinstforutsetninger er integrert i risikostyring og oppfølges kontinuerlig."]},
         {"id": 10, "title": "Prinsipielle og vilkarsmessige kriterier", "question": "Er forutsetninger og kriterier som påvirker gevinstene tydelig definert og dokumentert?", "scale": ["Niva 1: Ingen kriterier dokumentert.", "Niva 2: Kriterier er beskrevet uformelt.", "Niva 3: Kriterier dokumentert i deler av planverket.", "Niva 4: Vesentlige kriterier er analysert og håndtert i gevinstrealiseringsplanen.", "Niva 5: Kriterier overvakes, følges opp og inngår i risikostyringen."]},
@@ -865,7 +865,7 @@ def generate_html_report(initiative, stats):
         body {{ font-family: 'Source Sans Pro', Arial, sans-serif; padding: 40px; max-width: 1200px; margin: 0 auto; color: #172141; line-height: 1.7; font-size: 16px; }}
         h1 {{ color: #172141; text-align: center; margin-bottom: 5px; font-size: 2rem; }}
         h2 {{ color: #0053A6; border-bottom: 2px solid #64C8FA; padding-bottom: 8px; margin-top: 40px; font-size: 1.6rem; }}
-        h3 {{ color: #0053A6; margin-top: 25px; font-size: 1.3rem; }}
+        h3 {{ color: #0053A6; margin-top: 50px; margin-bottom: 25px; font-size: 1.3rem; }}
         h4 {{ color: #172141; margin-top: 20px; font-size: 1.15rem; }}
         .subtitle {{ text-align: center; color: #0053A6; margin-bottom: 30px; font-size: 1.1rem; }}
         table {{ width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 1rem; }}
@@ -876,7 +876,9 @@ def generate_html_report(initiative, stats):
         .metric-card {{ flex: 1; min-width: 150px; background: #F2FAFD; padding: 18px; border-radius: 8px; border-left: 4px solid #0053A6; text-align: center; }}
         .metric-value {{ font-size: 2.4rem; font-weight: 700; color: #0053A6; }}
         .metric-label {{ font-size: 1rem; color: #666; text-transform: uppercase; }}
-        .charts-row {{ display: flex; gap: 30px; margin: 20px 0; flex-wrap: wrap; justify-content: center; }}
+        .charts-row {{ display: flex; gap: 30px; margin: 30px 0 50px 0; flex-wrap: wrap; justify-content: center; }}
+        h3 { margin-top: 40px; margin-bottom: 20px; }
+        .charts-row { display: flex; gap: 30px; margin: 30px 0 40px 0; flex-wrap: wrap; justify-content: center; }
         .chart-container {{ flex: 1; min-width: 350px; max-width: 500px; text-align: center; }}
         .item {{ padding: 12px 16px; margin: 8px 0; border-radius: 6px; font-size: 1.05rem; }}
         .item-strength {{ background: #DDFAE2; border-left: 4px solid #35DE6D; }}
@@ -896,7 +898,7 @@ def generate_html_report(initiative, stats):
 </head>
 <body>
     <h1>Modenhetsvurdering - Gevinstrealisering</h1>
-    <p class="subtitle">Gjennomfores i samarbeid med konsern okonomi og digital transformasjon</p>
+    <p class="subtitle">Gjennomføres i samarbeid med konsern økonomi og digital transformasjon</p>
     
     <h2>DEL 1: Overordnede resultater</h2>
     
@@ -1210,7 +1212,7 @@ def show_project_selector(data):
     st.markdown(f'''
     <div style="text-align:center;margin-bottom:2rem;">
         <h1 style="margin:0;color:{COLORS['primary_dark']};font-size:2rem;font-weight:700;">Modenhetsvurdering</h1>
-        <p style="color:{COLORS['primary']};font-size:0.95rem;margin-top:0.3rem;">Gjennomfores i samarbeid med konsern okonomi og digital transformasjon</p>
+        <p style="color:{COLORS['primary']};font-size:0.95rem;margin-top:0.3rem;">Gjennomføres i samarbeid med konsern økonomi og digital transformasjon</p>
     </div>
     ''', unsafe_allow_html=True)
 

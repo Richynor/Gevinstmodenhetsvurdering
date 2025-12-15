@@ -663,7 +663,6 @@ def create_phase_radar(phase_data):
         return None
     categories = list(phase_data.keys())
     values = [phase_data[c]['avg'] for c in categories]
-    # Dupliser hvis færre enn 3 punkter
     if len(categories) == 1:
         categories = categories * 3
         values = values * 3
@@ -680,7 +679,6 @@ def create_parameter_radar(param_data):
         return None
     categories = list(param_data.keys())
     values = [param_data[c]['avg'] for c in categories]
-    # Dupliser hvis færre enn 3 punkter
     if len(categories) == 1:
         categories = categories * 3
         values = values * 3
@@ -692,13 +690,12 @@ def create_parameter_radar(param_data):
     fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5], tickfont=dict(size=14)), angularaxis=dict(tickfont=dict(size=13))), showlegend=False, height=400, margin=dict(l=100, r=100, t=40, b=40), font=dict(size=14))
     return fig
 
-def create_improvement_radar(items, max_items=8):
+def create_strength_radar(items, max_items=8):
     if not items:
         return None
     items = items[:max_items]
     categories = [item['title'] for item in items]
     values = [item['score'] for item in items]
-    # Radar krever minst 3 punkter - dupliser hvis færre
     if len(categories) == 1:
         categories = categories * 3
         values = values * 3
@@ -706,17 +703,16 @@ def create_improvement_radar(items, max_items=8):
         categories = categories + [categories[0]]
         values = values + [values[0]]
     fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(r=values + [values[0]], theta=categories + [categories[0]], fill='toself', fillcolor='rgba(255, 107, 107, 0.3)', line=dict(color=COLORS['danger'], width=3), name='Forbedring'))
-    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5], tickvals=[1,2,3,4,5], tickfont=dict(size=14)), angularaxis=dict(tickfont=dict(size=13))), showlegend=False, height=400, margin=dict(l=100, r=100, t=40, b=40), font=dict(size=14))
+    fig.add_trace(go.Scatterpolar(r=values + [values[0]], theta=categories + [categories[0]], fill='toself', fillcolor='rgba(53, 222, 109, 0.3)', line=dict(color=COLORS['success'], width=3), name='Styrker'))
+    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5], tickvals=[1,2,3,4,5], tickfont=dict(size=14)), angularaxis=dict(tickfont=dict(size=12))), showlegend=False, height=400, margin=dict(l=100, r=100, t=40, b=40), font=dict(size=14))
     return fig
 
 def create_improvement_radar(items, max_items=8):
     if not items:
         return None
     items = items[:max_items]
-    categories = [f"{item['title'][:20]}..." if len(item['title']) > 20 else item['title'] for item in items]
+    categories = [item['title'] for item in items]
     values = [item['score'] for item in items]
-    # Radar krever minst 3 punkter - dupliser hvis færre
     if len(categories) == 1:
         categories = categories * 3
         values = values * 3
@@ -725,7 +721,17 @@ def create_improvement_radar(items, max_items=8):
         values = values + [values[0]]
     fig = go.Figure()
     fig.add_trace(go.Scatterpolar(r=values + [values[0]], theta=categories + [categories[0]], fill='toself', fillcolor='rgba(255, 107, 107, 0.3)', line=dict(color=COLORS['danger'], width=3), name='Forbedring'))
-    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5], tickvals=[1,2,3,4,5], tickfont=dict(size=14))), showlegend=False, height=400, margin=dict(l=80, r=80, t=40, b=40), font=dict(size=14))
+    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 5], tickvals=[1,2,3,4,5], tickfont=dict(size=14)), angularaxis=dict(tickfont=dict(size=12))), showlegend=False, height=400, margin=dict(l=100, r=100, t=40, b=40), font=dict(size=14))
+    return fig
+
+def create_strength_bar_chart(items, max_items=8):
+    if not items:
+        return None
+    items = items[:max_items]
+    labels = [f"{item['phase'][:4]}: {item['title']}" for item in items]
+    scores = [item['score'] for item in items]
+    fig = go.Figure(data=[go.Bar(x=scores, y=labels, orientation='h', marker_color=COLORS['success'], text=[f"{s:.1f}" for s in scores], textposition='outside', textfont=dict(size=14))])
+    fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=14)), yaxis=dict(autorange="reversed", tickfont=dict(size=11)), height=max(300, len(labels) * 45), margin=dict(l=250, r=60, t=20, b=40), font=dict(size=14))
     return fig
 
 def create_improvement_bar_chart(items, max_items=8):
@@ -735,17 +741,7 @@ def create_improvement_bar_chart(items, max_items=8):
     labels = [f"{item['phase'][:4]}: {item['title']}" for item in items]
     scores = [item['score'] for item in items]
     fig = go.Figure(data=[go.Bar(x=scores, y=labels, orientation='h', marker_color=COLORS['danger'], text=[f"{s:.1f}" for s in scores], textposition='outside', textfont=dict(size=14))])
-    fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=14)), yaxis=dict(autorange="reversed", tickfont=dict(size=12)), height=max(300, len(labels) * 45), margin=dict(l=250, r=60, t=20, b=40), font=dict(size=14))
-    return fig
-
-def create_improvement_bar_chart(items, max_items=8):
-    if not items:
-        return None
-    items = items[:max_items]
-    labels = [f"{item['phase'][:4]}: {item['title'][:35]}..." if len(item['title']) > 35 else f"{item['phase'][:4]}: {item['title']}" for item in items]
-    scores = [item['score'] for item in items]
-    fig = go.Figure(data=[go.Bar(x=scores, y=labels, orientation='h', marker_color=COLORS['danger'], text=[f"{s:.1f}" for s in scores], textposition='outside', textfont=dict(size=16))])
-    fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=12)), yaxis=dict(autorange="reversed", tickfont=dict(size=11)), height=max(350, len(labels) * 50), margin=dict(l=280, r=60, t=20, b=40), font=dict(size=12))
+    fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=14)), yaxis=dict(autorange="reversed", tickfont=dict(size=11)), height=max(300, len(labels) * 45), margin=dict(l=250, r=60, t=20, b=40), font=dict(size=14))
     return fig
 
 def create_parameter_bar_chart(param_data):
@@ -754,8 +750,8 @@ def create_parameter_bar_chart(param_data):
     labels = list(param_data.keys())
     scores = [param_data[p]['avg'] for p in labels]
     colors = [COLORS['success'] if s >= 4 else COLORS['primary_light'] if s >= 3 else COLORS['warning'] if s >= 2 else COLORS['danger'] for s in scores]
-    fig = go.Figure(data=[go.Bar(x=scores, y=labels, orientation='h', marker_color=colors, text=[f"{s:.2f}" for s in scores], textposition='outside', textfont=dict(size=15))])
-    fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=12)), yaxis=dict(autorange="reversed", tickfont=dict(size=11)), height=max(350, len(labels) * 50), margin=dict(l=280, r=60, t=20, b=40), font=dict(size=12))
+    fig = go.Figure(data=[go.Bar(x=scores, y=labels, orientation='h', marker_color=colors, text=[f"{s:.2f}" for s in scores], textposition='outside', textfont=dict(size=14))])
+    fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=14)), yaxis=dict(autorange="reversed", tickfont=dict(size=11)), height=max(350, len(labels) * 45), margin=dict(l=220, r=60, t=20, b=40), font=dict(size=14))
     return fig
 
 def create_phase_bar_chart(phase_data):

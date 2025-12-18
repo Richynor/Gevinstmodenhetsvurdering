@@ -684,7 +684,7 @@ def get_anonymous_name(index):
     return f"Deltaker {index + 1}"
 
 def generate_html_report(initiative, stats):
-    def create_svg_radar(categories, values, color, title="", width=450, height=400):
+    def create_svg_radar(categories, values, color, title="", width=550, height=500):
         if not categories or not values:
             return ""
         if len(categories) == 1:
@@ -694,17 +694,29 @@ def generate_html_report(initiative, stats):
             categories = categories + [categories[0]]
             values = values + [values[0]]
         import math
-        cx, cy = width // 2, height // 2
-        radius = min(width, height) // 2 - 70
+        cx, cy = width // 2, (height // 2) + 20
+        radius = min(width, height) // 2 - 100
         n = len(categories)
         svg = f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">'
+        
+        # Title
+        if title:
+            svg += f'<text x="{cx}" y="25" text-anchor="middle" font-size="18" font-weight="bold" fill="#172141">{title}</text>'
+        
+        # Grid circles with labels
         for r in [0.2, 0.4, 0.6, 0.8, 1.0]:
             svg += f'<circle cx="{cx}" cy="{cy}" r="{radius * r}" fill="none" stroke="#E8E8E8" stroke-width="1"/>'
+            # Add score labels on right side
+            svg += f'<text x="{cx + radius * r + 5}" y="{cy + 4}" font-size="10" fill="#999">{int(r*5)}</text>'
+        
+        # Axis lines
         for i in range(n):
             angle = (2 * math.pi * i / n) - math.pi / 2
             x = cx + radius * math.cos(angle)
             y = cy + radius * math.sin(angle)
             svg += f'<line x1="{cx}" y1="{cy}" x2="{x}" y2="{y}" stroke="#E8E8E8" stroke-width="1"/>'
+        
+        # Data polygon
         points = []
         for i, val in enumerate(values):
             angle = (2 * math.pi * i / n) - math.pi / 2
@@ -713,40 +725,62 @@ def generate_html_report(initiative, stats):
             y = cy + r * math.sin(angle)
             points.append(f"{x},{y}")
         svg += f'<polygon points="{" ".join(points)}" fill="{color}" fill-opacity="0.3" stroke="{color}" stroke-width="2"/>'
+        
+        # Data points
+        for i, val in enumerate(values):
+            angle = (2 * math.pi * i / n) - math.pi / 2
+            r = (val / 5) * radius
+            x = cx + r * math.cos(angle)
+            y = cy + r * math.sin(angle)
+            svg += f'<circle cx="{x}" cy="{y}" r="4" fill="{color}"/>'
+        
+        # Labels with better positioning
         for i, cat in enumerate(categories):
             angle = (2 * math.pi * i / n) - math.pi / 2
-            x = cx + (radius + 45) * math.cos(angle)
-            y = cy + (radius + 45) * math.sin(angle)
-            label = cat[:15] + "..." if len(cat) > 15 else cat
-            svg += f'<text x="{x}" y="{y}" text-anchor="middle" font-size="11" fill="#172141" font-weight="500">{label}</text>'
-        if title:
-            svg += f'<text x="{cx}" y="22" text-anchor="middle" font-size="16" font-weight="bold" fill="#172141">{title}</text>'
+            label_distance = radius + 60
+            x = cx + label_distance * math.cos(angle)
+            y = cy + label_distance * math.sin(angle)
+            
+            # Wrap long labels
+            words = cat.split()
+            if len(cat) > 20 and len(words) > 1:
+                mid = len(words) // 2
+                line1 = ' '.join(words[:mid])
+                line2 = ' '.join(words[mid:])
+                svg += f'<text x="{x}" y="{y-8}" text-anchor="middle" font-size="11" fill="#172141" font-weight="500">{line1}</text>'
+                svg += f'<text x="{x}" y="{y+8}" text-anchor="middle" font-size="11" fill="#172141" font-weight="500">{line2}</text>'
+            else:
+                label = cat[:25] + "..." if len(cat) > 25 else cat
+                svg += f'<text x="{x}" y="{y}" text-anchor="middle" font-size="11" fill="#172141" font-weight="500">{label}</text>'
+        
         svg += '</svg>'
         return svg
 
-    def create_svg_bar_chart(labels, values, colors, title="", width=500, height=None):
+    def create_svg_bar_chart(labels, values, colors, title="", width=600, height=None):
         if not labels or not values:
             return ""
-        bar_height = 35
+        bar_height = 40
+        label_width = 280
         if height is None:
-            height = len(labels) * (bar_height + 10) + 60
+            height = len(labels) * (bar_height + 12) + 70
         max_val = 5
-        bar_area_width = width - 220
+        bar_area_width = width - label_width - 80
         
         svg = f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">'
         if title:
-            svg += f'<text x="{width//2}" y="25" text-anchor="middle" font-size="16" font-weight="bold" fill="#172141">{title}</text>'
+            svg += f'<text x="{width//2}" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#172141">{title}</text>'
         
-        y_offset = 50
+        y_offset = 55
         for i, (label, val) in enumerate(zip(labels, values)):
-            y = y_offset + i * (bar_height + 10)
+            y = y_offset + i * (bar_height + 12)
             bar_width = (val / max_val) * bar_area_width
             color = colors[i] if isinstance(colors, list) else colors
             
-            display_label = label[:22] + "..." if len(label) > 22 else label
-            svg += f'<text x="5" y="{y + bar_height//2 + 5}" font-size="12" fill="#172141">{display_label}</text>'
-            svg += f'<rect x="180" y="{y}" width="{bar_width}" height="{bar_height}" fill="{color}" rx="4"/>'
-            svg += f'<text x="{185 + bar_width}" y="{y + bar_height//2 + 5}" font-size="14" font-weight="bold" fill="#172141">{val:.2f}</text>'
+            # Full label with wrapping if needed
+            display_label = label[:35] + "..." if len(label) > 35 else label
+            svg += f'<text x="10" y="{y + bar_height//2 + 5}" font-size="12" fill="#172141">{display_label}</text>'
+            svg += f'<rect x="{label_width}" y="{y}" width="{bar_width}" height="{bar_height}" fill="{color}" rx="4"/>'
+            svg += f'<text x="{label_width + bar_width + 8}" y="{y + bar_height//2 + 5}" font-size="14" font-weight="bold" fill="#172141">{val:.2f}</text>'
         
         svg += '</svg>'
         return svg
@@ -757,7 +791,7 @@ def generate_html_report(initiative, stats):
     <meta charset="UTF-8">
     <title>Modenhetsvurdering - {initiative['name']}</title>
     <style>
-        body {{ font-family: 'Source Sans Pro', Arial, sans-serif; padding: 40px; max-width: 1200px; margin: 0 auto; color: #172141; line-height: 1.7; font-size: 16px; }}
+        body {{ font-family: 'Source Sans Pro', Arial, sans-serif; padding: 40px; max-width: 1400px; margin: 0 auto; color: #172141; line-height: 1.7; font-size: 16px; }}
         h1 {{ color: #172141; text-align: center; margin-bottom: 5px; font-size: 2rem; }}
         h2 {{ color: #0053A6; border-bottom: 2px solid #64C8FA; padding-bottom: 8px; margin-top: 40px; font-size: 1.6rem; }}
         h3 {{ color: #0053A6; margin-top: 60px; margin-bottom: 30px; font-size: 1.3rem; }}
@@ -771,13 +805,11 @@ def generate_html_report(initiative, stats):
         .metric-card {{ flex: 1; min-width: 150px; background: #F2FAFD; padding: 18px; border-radius: 8px; border-left: 4px solid #0053A6; text-align: center; }}
         .metric-value {{ font-size: 2.4rem; font-weight: 700; color: #0053A6; }}
         .metric-label {{ font-size: 1rem; color: #666; text-transform: uppercase; }}
-        .charts-row {{ display: flex; gap: 30px; margin: 30px 0 50px 0; flex-wrap: wrap; justify-content: center; }}
-        .chart-container {{ flex: 1; min-width: 350px; max-width: 500px; text-align: center; }}
+        .charts-row {{ display: flex; gap: 40px; margin: 40px 0 60px 0; flex-wrap: wrap; justify-content: center; }}
+        .chart-container {{ flex: 1; min-width: 400px; max-width: 650px; text-align: center; background: #FAFAFA; padding: 20px; border-radius: 10px; }}
         .item {{ padding: 12px 16px; margin: 8px 0; border-radius: 6px; font-size: 1.05rem; }}
         .item-strength {{ background: #DDFAE2; border-left: 4px solid #35DE6D; }}
         .item-improvement {{ background: rgba(255, 107, 107, 0.15); border-left: 4px solid #FF6B6B; }}
-        .benefit-section {{ background: #F8F9FA; padding: 25px; margin: 30px 0; border-radius: 10px; border: 1px solid #E8E8E8; }}
-        .benefit-header {{ background: #0053A6; color: white; padding: 15px 20px; margin: -25px -25px 20px -25px; border-radius: 10px 10px 0 0; }}
         .comment-phase {{ background: #64C8FA; color: white; padding: 12px 18px; margin-top: 20px; border-radius: 6px 6px 0 0; font-size: 1.1rem; font-weight: 600; }}
         .comment-question {{ background: #F2FAFD; padding: 12px 18px; border-left: 3px solid #0053A6; margin: 10px 0; }}
         .comment-question h4 {{ margin: 0 0 10px 0; color: #172141; font-size: 1.05rem; }}
@@ -787,6 +819,7 @@ def generate_html_report(initiative, stats):
         .score-badge {{ display: inline-block; background: #64C8FA; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.9rem; margin-left: 8px; }}
         .footer {{ text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #E8E8E8; color: #666; font-size: 0.95rem; }}
         .page-break {{ page-break-before: always; }}
+        .full-width-chart {{ width: 100%; text-align: center; margin: 30px 0; }}
     </style>
 </head>
 <body>
@@ -827,8 +860,8 @@ def generate_html_report(initiative, stats):
     if stats['phases']:
         html += "<h3>1.2 Modenhet per fase</h3>"
         html += "<table><tr><th>Fase</th><th>Gjennomsnitt</th><th>Min</th><th>Maks</th></tr>"
-        for phase, data in stats['phases'].items():
-            html += f"<tr><td>{phase}</td><td><strong>{data['avg']:.2f}</strong></td><td>{data['min']:.2f}</td><td>{data['max']:.2f}</td></tr>"
+        for phase, pdata in stats['phases'].items():
+            html += f"<tr><td>{phase}</td><td><strong>{pdata['avg']:.2f}</strong></td><td>{pdata['min']:.2f}</td><td>{pdata['max']:.2f}</td></tr>"
         html += "</table>"
         
         phase_cats = list(stats['phases'].keys())
@@ -844,31 +877,32 @@ def generate_html_report(initiative, stats):
         html += '</div>'
         html += '</div>'
         
-        if stats['parameters']:
-            param_cats = list(stats['parameters'].keys())
-            param_vals = [stats['parameters'][p]['avg'] for p in param_cats]
-            param_colors = ['#35DE6D' if v >= 4 else '#64C8FA' if v >= 3 else '#FFA040' if v >= 2 else '#FF6B6B' for v in param_vals]
-            
-            html += '<div class="charts-row">'
-            html += '<div class="chart-container">'
-            html += create_svg_radar(param_cats, param_vals, '#64C8FA', 'Modenhet per parameter')
-            html += '</div>'
-            html += '<div class="chart-container">'
-            html += create_svg_bar_chart(param_cats, param_vals, param_colors, 'Parametere - stolpediagram')
-            html += '</div>'
-            html += '</div>'
+    if stats['parameters']:
+        html += "<h3>1.3 Modenhet per parameter</h3>"
+        param_cats = list(stats['parameters'].keys())
+        param_vals = [stats['parameters'][p]['avg'] for p in param_cats]
+        param_colors = ['#35DE6D' if v >= 4 else '#64C8FA' if v >= 3 else '#FFA040' if v >= 2 else '#FF6B6B' for v in param_vals]
+        
+        html += '<div class="charts-row">'
+        html += '<div class="chart-container">'
+        html += create_svg_radar(param_cats, param_vals, '#64C8FA', 'Modenhet per parameter')
+        html += '</div>'
+        html += '<div class="chart-container">'
+        html += create_svg_bar_chart(param_cats, param_vals, param_colors, 'Parametere - stolpediagram')
+        html += '</div>'
+        html += '</div>'
 
-    html += "<h3>1.3 Styrkeområder og forbedringsområder</h3>"
+    html += "<h3>1.4 Styrkeområder og forbedringsområder</h3>"
     html += '<div class="charts-row">'
     if stats['high_maturity']:
         html += '<div class="chart-container">'
-        strength_cats = [item['title'][:20] for item in stats['high_maturity'][:8]]
+        strength_cats = [item['title'] for item in stats['high_maturity'][:8]]
         strength_vals = [item['score'] for item in stats['high_maturity'][:8]]
         html += create_svg_radar(strength_cats, strength_vals, '#35DE6D', 'Styrkeområder')
         html += '</div>'
     if stats['low_maturity']:
         html += '<div class="chart-container">'
-        improve_cats = [item['title'][:20] for item in stats['low_maturity'][:8]]
+        improve_cats = [item['title'] for item in stats['low_maturity'][:8]]
         improve_vals = [item['score'] for item in stats['low_maturity'][:8]]
         html += create_svg_radar(improve_cats, improve_vals, '#FF6B6B', 'Forbedringsområder')
         html += '</div>'
@@ -877,13 +911,13 @@ def generate_html_report(initiative, stats):
     html += '<div class="charts-row">'
     if stats['high_maturity']:
         html += '<div class="chart-container">'
-        strength_labels = [f"[{item['phase'][:4]}] {item['title'][:18]}" for item in stats['high_maturity'][:8]]
+        strength_labels = [f"[{item['phase'][:4]}] {item['title']}" for item in stats['high_maturity'][:8]]
         strength_vals = [item['score'] for item in stats['high_maturity'][:8]]
         html += create_svg_bar_chart(strength_labels, strength_vals, '#35DE6D', 'Styrker - stolpediagram')
         html += '</div>'
     if stats['low_maturity']:
         html += '<div class="chart-container">'
-        improve_labels = [f"[{item['phase'][:4]}] {item['title'][:18]}" for item in stats['low_maturity'][:8]]
+        improve_labels = [f"[{item['phase'][:4]}] {item['title']}" for item in stats['low_maturity'][:8]]
         improve_vals = [item['score'] for item in stats['low_maturity'][:8]]
         html += create_svg_bar_chart(improve_labels, improve_vals, '#FF6B6B', 'Forbedring - stolpediagram')
         html += '</div>'
@@ -900,13 +934,13 @@ def generate_html_report(initiative, stats):
             html += f'<div class="item item-improvement"><strong>[{item["phase"]}]</strong> {item["title"]}: <strong>{item["score"]:.2f}</strong></div>'
 
     if stats['parameters']:
-        html += "<h3>1.4 Resultater per parameter</h3>"
+        html += "<h3>1.5 Resultater per parameter</h3>"
         html += "<table><tr><th>Parameter</th><th>Score</th><th>Beskrivelse</th></tr>"
-        for name, data in stats['parameters'].items():
-            html += f"<tr><td>{name}</td><td><strong>{data['avg']:.2f}</strong></td><td>{data['description']}</td></tr>"
+        for name, pdata in stats['parameters'].items():
+            html += f"<tr><td>{name}</td><td><strong>{pdata['avg']:.2f}</strong></td><td>{pdata['description']}</td></tr>"
         html += "</table>"
 
-    html += "<h3>1.5 Intervjuoversikt (anonymisert)</h3>"
+    html += "<h3>1.6 Intervjuoversikt (anonymisert)</h3>"
     html += "<table><tr><th>Deltaker</th><th>Dato</th><th>Gevinst</th><th>Fase</th><th>Snitt</th></tr>"
     for idx, interview in enumerate(initiative.get('interviews', {}).values()):
         info = interview.get('info', {})
@@ -1204,19 +1238,11 @@ def show_main_app(data, current_project_id):
         st.write(f"**Beskrivelse:** {initiative.get('description', 'Ingen')}")
         st.markdown("---")
         
-        # Håndter ventende sletting FØRST, før noe annet vises
-        if 'delete_benefit_id' in st.session_state and st.session_state.delete_benefit_id:
-            ben_id_to_delete = st.session_state.delete_benefit_id
-            st.session_state.delete_benefit_id = None
-            if ben_id_to_delete in data['initiatives'][current_project_id].get('benefits', {}):
-                del data['initiatives'][current_project_id]['benefits'][ben_id_to_delete]
-                persist_data()
-                st.rerun()
-        
         col1, col2 = st.columns([2, 1])
+        
         with col2:
             st.markdown("### Legg til gevinst")
-            with st.form("add_benefit_form"):
+            with st.form("add_benefit_form", clear_on_submit=True):
                 new_benefit = st.text_input("Gevinstnavn", placeholder="F.eks. Redusert reisetid")
                 if st.form_submit_button("Legg til", use_container_width=True):
                     if new_benefit:
@@ -1228,22 +1254,34 @@ def show_main_app(data, current_project_id):
                         }
                         persist_data()
                         st.rerun()
+            
+            # Slett gevinst - pålitelig med form
+            st.markdown("### Slett gevinst")
+            benefits = data['initiatives'][current_project_id].get('benefits', {})
+            if benefits:
+                benefit_options = {benefit['name']: ben_id for ben_id, benefit in benefits.items()}
+                with st.form("delete_benefit_form"):
+                    selected_benefit = st.selectbox("Velg gevinst å slette", options=list(benefit_options.keys()))
+                    if st.form_submit_button("Slett valgt gevinst", type="primary", use_container_width=True):
+                        ben_id_to_delete = benefit_options[selected_benefit]
+                        del data['initiatives'][current_project_id]['benefits'][ben_id_to_delete]
+                        persist_data()
+                        st.rerun()
+            else:
+                st.info("Ingen gevinster å slette")
+        
         with col1:
             st.markdown("### Registrerte gevinster")
             benefits = data['initiatives'][current_project_id].get('benefits', {})
             if benefits:
-                for ben_id, benefit in list(benefits.items()):
-                    col_a, col_b = st.columns([4, 1])
-                    col_a.write(f"- **{benefit['name']}**")
-                    
-                    def delete_benefit(bid=ben_id):
-                        st.session_state.delete_benefit_id = bid
-                    
-                    col_b.button("Slett", key=f"del_ben_{ben_id}", on_click=delete_benefit, args=(ben_id,))
+                for ben_id, benefit in benefits.items():
+                    st.markdown(f"- **{benefit['name']}**")
             else:
                 st.info("Ingen gevinster registrert enda.")
+        
         st.markdown("---")
         st.markdown("### Prosjektinnstillinger")
+        
         with st.expander("Endre tilgangskode"):
             with st.form("change_code_form"):
                 current_code = st.text_input("Nåværende kode", type="password")
@@ -1258,24 +1296,20 @@ def show_main_app(data, current_project_id):
                         data['initiatives'][current_project_id]['access_code'] = new_code
                         persist_data()
                         st.success("Tilgangskode oppdatert!")
+        
         with st.expander("Slett prosjekt", expanded=False):
-            st.warning("Dette vil slette prosjektet og alle tilhørende data permanent!")
-            confirm_name = st.text_input("Skriv prosjektnavnet for å bekrefte sletting", key="confirm_delete_name")
-            
-            def delete_project():
-                st.session_state.delete_project_confirmed = True
-            
-            st.button("Slett prosjekt permanent", type="primary", on_click=delete_project)
-            
-            if st.session_state.get('delete_project_confirmed'):
-                st.session_state.delete_project_confirmed = False
-                if confirm_name == data['initiatives'][current_project_id]['name']:
-                    del data['initiatives'][current_project_id]
-                    persist_data()
-                    del st.session_state['current_project']
-                    st.rerun()
-                else:
-                    st.error("Prosjektnavnet stemmer ikke")
+            st.warning("⚠️ Dette vil slette prosjektet og alle tilhørende data permanent!")
+            with st.form("delete_project_form"):
+                confirm_name = st.text_input(f"Skriv '{initiative['name']}' for å bekrefte sletting")
+                if st.form_submit_button("Slett prosjekt permanent", type="primary"):
+                    if confirm_name == initiative['name']:
+                        del data['initiatives'][current_project_id]
+                        persist_data()
+                        if 'current_project' in st.session_state:
+                            del st.session_state['current_project']
+                        st.rerun()
+                    else:
+                        st.error("Prosjektnavnet stemmer ikke")
 
     # TAB 3: INTERVJU
     with tab3:

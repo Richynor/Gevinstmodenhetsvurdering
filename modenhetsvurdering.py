@@ -99,7 +99,7 @@ ROLES = {
         "recommended_questions": {
             "Planlegging": [2, 3, 4, 6, 9, 10, 11, 12, 13, 16, 17, 20, 21],
             "Gjennomføring": [2, 6, 9, 10, 11, 12, 13, 16, 17, 20, 21],
-            "Realisering": [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 20, 21,22,24],
+            "Realisering": [1, 2, 4, 3, 6, 8, 9, 10, 11, 12, 13, 15, 16, 17, 20, 21, 22, 24],
             "Realisert": [1, 2, 6, 8, 11, 12, 13, 16, 17, 20, 21]
         }
     },
@@ -560,7 +560,7 @@ def calculate_stats(initiative, benefit_filter=None):
     return stats
 
 # ============================================================================
-# DIAGRAMMER - ALLE 8 FUNKSJONER
+# DIAGRAMMER
 # ============================================================================
 def create_phase_radar(phase_data):
     if not phase_data:
@@ -1218,7 +1218,7 @@ def show_main_app(data, current_project_id):
                         }
                         persist_data()
                         st.rerun()
-       with col1:
+        with col1:
             st.markdown("### Registrerte gevinster")
             if initiative.get('benefits'):
                 benefits_to_delete = None

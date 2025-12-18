@@ -1,6 +1,6 @@
 """
 MODENHETSVURDERING - GEVINSTREALISERING
-Gjennomfores i samarbeid med konsern økonomi og digital transformasjon
+Gjennomføres i samarbeid med konsern økonomi og digital transformasjon
 
 For PDF-rapporter, installer:
   pip install fpdf2 filelock
@@ -45,7 +45,7 @@ LOCK_FILE = "modenhet_data.pkl.lock"
 BACKUP_DIR = "backups"
 
 # ============================================================================
-# FLERBRUKER-STOTTE
+# FLERBRUKER-STØTTE
 # ============================================================================
 def get_session_id():
     if 'session_id' not in st.session_state:
@@ -99,7 +99,7 @@ ROLES = {
         "recommended_questions": {
             "Planlegging": [2, 3, 4, 6, 9, 10, 11, 12, 13, 16, 17, 20, 21],
             "Gjennomføring": [2, 6, 9, 10, 11, 12, 13, 16, 17, 20, 21],
-            "Realisering": [1, 2, 3, 6, 8, 9, 10, 11, 12, 13, 16, 17, 20, 21],
+            "Realisering": [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 20, 21,22,24],
             "Realisert": [1, 2, 6, 8, 11, 12, 13, 16, 17, 20, 21]
         }
     },
@@ -291,15 +291,13 @@ questions_data = {
 }
 
 # ============================================================================
-# DATALAGRING MED FLERBRUKER-STOTTE
+# DATALAGRING MED FLERBRUKER-STØTTE
 # ============================================================================
 def ensure_backup_dir():
-    # Opprett backup-mappe
     if not os.path.exists(BACKUP_DIR):
         os.makedirs(BACKUP_DIR)
 
 def create_backup():
-    # Lag backup av datafilen
     data_file = get_data_file()
     if os.path.exists(data_file):
         ensure_backup_dir()
@@ -314,7 +312,6 @@ def create_backup():
             print(f"Backup feilet: {e}")
 
 def load_data():
-    """Last data fra fil med filelock for sikker lesing"""
     data_file = get_data_file()
     if os.path.exists(data_file):
         try:
@@ -333,12 +330,11 @@ def load_data():
             if 'initiatives' not in data:
                 data['initiatives'] = {}
             return data
-        except:
-            pass
+        except Exception as e:
+            print(f"Feil ved lasting: {e}")
     return {'initiatives': {}}
 
 def save_data(data):
-    # Lagre data til fil med las
     data_file = get_data_file()
     if FILELOCK_AVAILABLE:
         lock = FileLock(LOCK_FILE, timeout=10)
@@ -358,14 +354,12 @@ def save_data(data):
             st.error(f"Feil ved lagring: {e}")
 
 def get_data():
-    """ALWAYS read from file first to ensure fresh data - prevents data loss on rerun"""
-    file_data = load_data()  # Always read file
+    file_data = load_data()
     
     if 'app_data' not in st.session_state:
         st.session_state.app_data = file_data
         st.session_state.data_loaded_at = datetime.now()
     else:
-        # Merge file data with session - file has priority for other users' data
         st.session_state.app_data = merge_data(file_data, st.session_state.app_data)
     
     if 'initiatives' not in st.session_state.app_data:
@@ -373,13 +367,11 @@ def get_data():
     return st.session_state.app_data
 
 def refresh_data():
-    # Tving oppdatering fra fil
     st.session_state.app_data = load_data()
     st.session_state.data_loaded_at = datetime.now()
     return st.session_state.app_data
 
 def merge_data(file_data, session_data):
-    # Sla sammen data fra fil og session
     merged = {'initiatives': {}}
     all_init_ids = set(file_data.get('initiatives', {}).keys()) | set(session_data.get('initiatives', {}).keys())
     
@@ -413,7 +405,6 @@ def merge_data(file_data, session_data):
     return merged
 
 def persist_data():
-    # Lagre med merge for å unnga å overskrive andres data
     data_file = get_data_file()
     
     try:
@@ -568,95 +559,8 @@ def calculate_stats(initiative, benefit_filter=None):
     
     return stats
 
-def get_score_color(score):
-    if score >= 4.5: return COLORS['success']
-    elif score >= 3.5: return COLORS['primary_light']
-    elif score >= 2.5: return COLORS['warning']
-    else: return COLORS['danger']
-
-def get_score_text(score):
-    if score >= 4.5: return "Høy modenhet"
-    elif score >= 3.5: return "God modenhet"
-    elif score >= 2.5: return "Moderat modenhet"
-    elif score >= 1.5: return "Begrenset modenhet"
-    else: return "Lav modenhet"
-    if not initiative.get('interviews'):
-        return None
-    
-    all_scores = {}
-    for phase in PHASES:
-        all_scores[phase] = {}
-        for q in questions_data[phase]:
-            all_scores[phase][q['id']] = []
-    
-    interview_count = 0
-    for interview in initiative['interviews'].values():
-        if benefit_filter and benefit_filter != "all":
-            if interview.get('info', {}).get('benefit_id') != benefit_filter:
-                continue
-        interview_count += 1
-        
-        for phase, questions in interview.get('responses', {}).items():
-            for q_id, resp in questions.items():
-                if resp.get('score', 0) > 0:
-                    all_scores[phase][int(q_id)].append(resp['score'])
-    
-    stats = {
-        'phases': {},
-        'questions': {},
-        'parameters': {},
-        'total_interviews': interview_count,
-        'overall_avg': 0,
-        'high_maturity': [],
-        'low_maturity': []
-    }
-    
-    all_avgs = []
-    
-    for phase in PHASES:
-        phase_scores = []
-        stats['questions'][phase] = {}
-        
-        for q in questions_data[phase]:
-            scores = all_scores[phase][q['id']]
-            if scores:
-                avg = np.mean(scores)
-                stats['questions'][phase][q['id']] = {
-                    'avg': avg, 'min': min(scores), 'max': max(scores),
-                    'count': len(scores), 'title': q['title'], 'question': q['question']
-                }
-                phase_scores.append(avg)
-                all_avgs.append(avg)
-                
-                item = {'phase': phase, 'question_id': q['id'], 'title': q['title'], 'score': avg}
-                if avg >= 4:
-                    stats['high_maturity'].append(item)
-                elif avg < 3:
-                    stats['low_maturity'].append(item)
-        
-        if phase_scores:
-            stats['phases'][phase] = {'avg': np.mean(phase_scores), 'min': min(phase_scores), 'max': max(phase_scores)}
-    
-    for param_name, param_data in PARAMETERS.items():
-        param_scores = []
-        for phase in PHASES:
-            if phase in stats['questions']:
-                for q_id in param_data['questions']:
-                    if q_id in stats['questions'][phase]:
-                        param_scores.append(stats['questions'][phase][q_id]['avg'])
-        if param_scores:
-            stats['parameters'][param_name] = {'avg': np.mean(param_scores), 'description': param_data['description']}
-    
-    if all_avgs:
-        stats['overall_avg'] = np.mean(all_avgs)
-    
-    stats['high_maturity'].sort(key=lambda x: x['score'], reverse=True)
-    stats['low_maturity'].sort(key=lambda x: x['score'])
-    
-    return stats
-
 # ============================================================================
-# DIAGRAMMER
+# DIAGRAMMER - ALLE 8 FUNKSJONER
 # ============================================================================
 def create_phase_radar(phase_data):
     if not phase_data:
@@ -763,6 +667,7 @@ def create_phase_bar_chart(phase_data):
     fig = go.Figure(data=[go.Bar(x=scores, y=labels, orientation='h', marker_color=colors, text=[f"{s:.2f}" for s in scores], textposition='outside', textfont=dict(size=16))])
     fig.update_layout(xaxis=dict(range=[0, 5.5], title="Score", tickfont=dict(size=14)), yaxis=dict(autorange="reversed", tickfont=dict(size=14)), height=max(250, len(labels) * 50), margin=dict(l=150, r=60, t=20, b=40), font=dict(size=14))
     return fig
+
 # ============================================================================
 # RAPPORT-GENERERING
 # ============================================================================
@@ -779,11 +684,9 @@ def get_anonymous_name(index):
     return f"Deltaker {index + 1}"
 
 def generate_html_report(initiative, stats):
-    # Generer HTML-rapport
     def create_svg_radar(categories, values, color, title="", width=450, height=400):
         if not categories or not values:
             return ""
-        # Dupliser hvis færre enn 3 punkter
         if len(categories) == 1:
             categories = categories * 3
             values = values * 3
@@ -840,12 +743,9 @@ def generate_html_report(initiative, stats):
             bar_width = (val / max_val) * bar_area_width
             color = colors[i] if isinstance(colors, list) else colors
             
-            # Label
             display_label = label[:22] + "..." if len(label) > 22 else label
             svg += f'<text x="5" y="{y + bar_height//2 + 5}" font-size="12" fill="#172141">{display_label}</text>'
-            # Bar
             svg += f'<rect x="180" y="{y}" width="{bar_width}" height="{bar_height}" fill="{color}" rx="4"/>'
-            # Value
             svg += f'<text x="{185 + bar_width}" y="{y + bar_height//2 + 5}" font-size="14" font-weight="bold" fill="#172141">{val:.2f}</text>'
         
         svg += '</svg>'
@@ -974,7 +874,6 @@ def generate_html_report(initiative, stats):
         html += '</div>'
     html += '</div>'
     
-    # Bar charts for styrker og forbedringer
     html += '<div class="charts-row">'
     if stats['high_maturity']:
         html += '<div class="chart-container">'
@@ -1019,7 +918,6 @@ def generate_html_report(initiative, stats):
         html += f"<tr><td>{anon_name}</td><td>{info.get('date', '-')}</td><td>{info.get('benefit_name', 'Generelt')}</td><td>{info.get('phase', '-')}</td><td>{avg_str}</td></tr>"
     html += "</table>"
 
-    # Del 2: Kommentarer
     html += '<div class="page-break"></div>'
     html += "<h2>DEL 2: Kommentarer</h2>"
     
@@ -1039,7 +937,7 @@ def generate_html_report(initiative, stats):
             html += f'<div class="comment-phase"><strong>{phase}</strong></div>'
             phase_questions = {str(q['id']): q['title'] for q in questions_data.get(phase, [])}
             for q_id in sorted(phase_comments.keys(), key=lambda x: int(x)):
-                q_title = phase_questions.get(q_id, f"Sporsmal {q_id}")
+                q_title = phase_questions.get(q_id, f"Spørsmål {q_id}")
                 html += f'<div class="comment-question"><h4>{q_id}. {q_title}</h4>'
                 for comment in phase_comments[q_id]:
                     html += f'''<div class="comment-item">
@@ -1052,7 +950,6 @@ def generate_html_report(initiative, stats):
     return html
 
 def generate_txt_report(initiative, stats):
-    # Generer TXT-rapport
     lines = []
     lines.append("=" * 60)
     lines.append("MODENHETSVURDERING - GEVINSTREALISERING")
@@ -1075,14 +972,14 @@ def generate_txt_report(initiative, stats):
         lines.append("")
 
     if stats['high_maturity']:
-        lines.append("3. STYRKEOMRADER (score >= 4)")
+        lines.append("3. STYRKEOMRÅDER (score >= 4)")
         lines.append("-" * 40)
         for item in stats['high_maturity'][:10]:
             lines.append(f"  [{item['phase']}] {item['title']}: {item['score']:.2f}")
         lines.append("")
 
     if stats['low_maturity']:
-        lines.append("4. FORBEDRINGSOMRADER (score < 3)")
+        lines.append("4. FORBEDRINGSOMRÅDER (score < 3)")
         lines.append("-" * 40)
         for item in stats['low_maturity'][:10]:
             lines.append(f"  [{item['phase']}] {item['title']}: {item['score']:.2f}")
@@ -1124,7 +1021,7 @@ def generate_txt_report(initiative, stats):
             lines.append(f"\n  [{phase}]")
             phase_questions = {str(q['id']): q['title'] for q in questions_data.get(phase, [])}
             for q_id in sorted(phase_comments.keys(), key=lambda x: int(x)):
-                q_title = phase_questions.get(q_id, f"Sporsmal {q_id}")
+                q_title = phase_questions.get(q_id, f"Spørsmål {q_id}")
                 lines.append(f"    {q_id}. {q_title}")
                 for comment in phase_comments[q_id]:
                     lines.append(f"      - {comment['participant']} (Nivå {comment['score']}): {comment['notes']}")
@@ -1135,14 +1032,12 @@ def generate_txt_report(initiative, stats):
     return "\n".join(lines)
 
 def safe_text(text):
-    # Konverter norske tegn til ASCII for PDF
-    replacements = {'ae': 'ae', 'Ae': 'Ae', 'o': 'o', 'O': 'O', 'a': 'a', 'A': 'A'}
+    replacements = {'æ': 'ae', 'Æ': 'Ae', 'ø': 'o', 'Ø': 'O', 'å': 'a', 'Å': 'A'}
     for old, new in replacements.items():
         text = text.replace(old, new)
     return text
 
 def generate_pdf_report(initiative, stats):
-    # Generer PDF-rapport
     if not FPDF_AVAILABLE:
         return None
     try:
@@ -1201,7 +1096,6 @@ def generate_pdf_report(initiative, stats):
 # HOVEDAPPLIKASJON
 # ============================================================================
 def show_project_selector(data):
-    # Viser prosjektvelger
     st.markdown(f'''
     <div style="text-align:center;margin-bottom:2rem;">
         <h1 style="margin:0;color:{COLORS['primary_dark']};font-size:2rem;font-weight:700;">Modenhetsvurdering</h1>
@@ -1236,7 +1130,7 @@ def show_project_selector(data):
     with col2:
         st.markdown("### Opprett nytt prosjekt")
         with st.form("new_project_form"):
-            new_name = st.text_input("Prosjektnavn", placeholder="F.eks. ERTMS Ostlandet")
+            new_name = st.text_input("Prosjektnavn", placeholder="F.eks. ERTMS Østlandet")
             new_desc = st.text_area("Beskrivelse", height=80)
             new_code = st.text_input("Tilgangskode (valgfritt)", type="password")
             new_code_confirm = st.text_input("Bekreft tilgangskode", type="password")
@@ -1261,7 +1155,6 @@ def show_project_selector(data):
                     st.rerun()
 
 def show_main_app(data, current_project_id):
-    # Viser hovedapplikasjonen
     initiative = data['initiatives'][current_project_id]
 
     col1, col2, col3 = st.columns([1, 3, 1])
@@ -1354,7 +1247,7 @@ def show_main_app(data, current_project_id):
                         persist_data()
                         st.success("Tilgangskode oppdatert!")
         with st.expander("Slett prosjekt", expanded=False):
-            st.warning("Dette vil slette prosjektet og alle tilhorende data permanent!")
+            st.warning("Dette vil slette prosjektet og alle tilhørende data permanent!")
             confirm_name = st.text_input("Skriv prosjektnavnet for å bekrefte sletting")
             if st.button("Slett prosjekt permanent", type="primary"):
                 if confirm_name == initiative['name']:
@@ -1367,7 +1260,7 @@ def show_main_app(data, current_project_id):
 
     # TAB 3: INTERVJU
     with tab3:
-        st.markdown("## Gjennomfor intervju")
+        st.markdown("## Gjennomfør intervju")
         if 'active_interview' not in st.session_state:
             col1, col2 = st.columns(2)
             with col1:
@@ -1378,7 +1271,7 @@ def show_main_app(data, current_project_id):
                 selected_benefit_name = st.selectbox("Gevinst", options=list(benefit_options.keys()))
                 selected_benefit_id = benefit_options[selected_benefit_name]
                 selected_phase = st.selectbox("Fase", options=PHASES)
-                focus_mode = st.radio("Fokusmodus", options=["Rollebasert", "Parameterbasert", "Alle sporsmal"], horizontal=True)
+                focus_mode = st.radio("Fokusmodus", options=["Rollebasert", "Parameterbasert", "Alle spørsmål"], horizontal=True)
                 selected_role = None
                 selected_params = []
                 recommended = []
@@ -1386,11 +1279,11 @@ def show_main_app(data, current_project_id):
                     selected_role = st.selectbox("Rolle", options=list(ROLES.keys()))
                     recommended = get_recommended_questions("role", selected_role, selected_phase)
                     st.caption(ROLES[selected_role]['description'])
-                    st.success(f"{len(recommended)} anbefalte sporsmal. Alle 23 tilgjengelige.")
+                    st.success(f"{len(recommended)} anbefalte spørsmål. Alle 24 tilgjengelige.")
                 elif focus_mode == "Parameterbasert":
                     selected_params = st.multiselect("Parametere", options=list(PARAMETERS.keys()), default=list(PARAMETERS.keys())[:2])
                     recommended = get_recommended_questions("parameter", selected_params, selected_phase)
-                    st.success(f"{len(recommended)} anbefalte sporsmal. Alle 23 tilgjengelige.")
+                    st.success(f"{len(recommended)} anbefalte spørsmål. Alle 24 tilgjengelige.")
                 with st.form("new_interview"):
                     interviewer = st.text_input("Intervjuer")
                     interviewee = st.text_input("Intervjuobjekt")
@@ -1435,13 +1328,13 @@ def show_main_app(data, current_project_id):
                     recommended_qs = [q for q in questions if q['id'] in recommended]
                     other_qs = [q for q in questions if q['id'] not in recommended]
                     if recommended_qs:
-                        st.markdown("### Anbefalte sporsmal")
+                        st.markdown("### Anbefalte spørsmål")
                         for q in recommended_qs:
                             q_id_str = str(q['id'])
                             if q_id_str not in interview['responses'][phase]:
                                 interview['responses'][phase][q_id_str] = {'score': 0, 'notes': ''}
                             resp = interview['responses'][phase][q_id_str]
-                            status = "V" if resp['score'] > 0 else "O"
+                            status = "✓" if resp['score'] > 0 else "○"
                             with st.expander(f"{status} {q['id']}. {q['title']}" + (f" - Nivå {resp['score']}" if resp['score'] > 0 else ""), expanded=(resp['score'] == 0)):
                                 st.markdown(f"**{q['question']}**")
                                 for level in q['scale']:
@@ -1453,13 +1346,13 @@ def show_main_app(data, current_project_id):
                                     persist_data()
                                     st.rerun()
                     if other_qs:
-                        st.markdown("### Andre sporsmal")
+                        st.markdown("### Andre spørsmål")
                         for q in other_qs:
                             q_id_str = str(q['id'])
                             if q_id_str not in interview['responses'][phase]:
                                 interview['responses'][phase][q_id_str] = {'score': 0, 'notes': ''}
                             resp = interview['responses'][phase][q_id_str]
-                            status = "V" if resp['score'] > 0 else "O"
+                            status = "✓" if resp['score'] > 0 else "○"
                             with st.expander(f"{status} {q['id']}. {q['title']}" + (f" - Nivå {resp['score']}" if resp['score'] > 0 else ""), expanded=False):
                                 st.markdown(f"**{q['question']}**")
                                 for level in q['scale']:
@@ -1556,7 +1449,7 @@ def show_main_app(data, current_project_id):
         st.markdown("## Generer rapport")
         stats = calculate_stats(initiative)
         if not stats or stats['total_interviews'] == 0:
-            st.info("Gjennomfor minst ett intervju forst")
+            st.info("Gjennomfør minst ett intervju først")
         else:
             st.markdown("### Eksportformat")
             col1, col2, col3 = st.columns(3)
@@ -1565,7 +1458,7 @@ def show_main_app(data, current_project_id):
                 csv_data = []
                 for phase in stats['questions']:
                     for q_id, q_data in stats['questions'][phase].items():
-                        csv_data.append({'Fase': phase, 'SporsmalID': q_id, 'Tittel': q_data['title'], 'Gjennomsnitt': round(q_data['avg'], 2), 'AntallSvar': q_data['count']})
+                        csv_data.append({'Fase': phase, 'SpørsmålID': q_id, 'Tittel': q_data['title'], 'Gjennomsnitt': round(q_data['avg'], 2), 'AntallSvar': q_data['count']})
                 csv_df = pd.DataFrame(csv_data)
                 st.download_button("Last ned CSV", data=csv_df.to_csv(index=False, sep=';'), file_name=f"modenhet_{initiative['name']}_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", use_container_width=True)
             with col2:
@@ -1602,7 +1495,6 @@ def show_main_app(data, current_project_id):
                 st.dataframe(pd.DataFrame(interview_data), use_container_width=True)
 
 def main():
-    # Hovedfunksjon
     data = get_data()
     if 'current_project' not in st.session_state:
         show_project_selector(data)

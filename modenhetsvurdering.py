@@ -99,7 +99,7 @@ ROLES = {
         "recommended_questions": {
             "Planlegging": [2, 3, 4, 6, 9, 10, 11, 12, 13, 16, 17, 20, 21],
             "Gjennomføring": [2, 6, 9, 10, 11, 12, 13, 16, 17, 20, 21],
-            "Realisering": [1, 2, 4, 3, 6, 8, 9, 10, 11, 12, 13, 15, 16, 17, 20, 21, 22, 24],
+            "Realisering": [1, 2, 4, 3, 6, 7, 8, 9, 10, 11, 12, 13,15, 16, 17, 20, 21,22],
             "Realisert": [1, 2, 6, 8, 11, 12, 13, 16, 17, 20, 21]
         }
     },
@@ -457,7 +457,7 @@ footer {{visibility: hidden;}}
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# HJELPEFUNKSJONER
+# HJELPEFUNKSJONER - KUN EN DEFINISJON AV HVER!
 # ============================================================================
 def get_score_color(score):
     if score >= 4.5: return COLORS['success']
@@ -1221,17 +1221,21 @@ def show_main_app(data, current_project_id):
         with col1:
             st.markdown("### Registrerte gevinster")
             if initiative.get('benefits'):
-                benefits_to_delete = None
+                # Håndter ventende sletting fra forrige rerun
+                if 'pending_benefit_delete' in st.session_state:
+                    ben_to_del = st.session_state.pending_benefit_delete
+                    if ben_to_del in data['initiatives'][current_project_id].get('benefits', {}):
+                        del data['initiatives'][current_project_id]['benefits'][ben_to_del]
+                        persist_data()
+                    del st.session_state.pending_benefit_delete
+                    st.rerun()
+                
                 for ben_id, benefit in list(initiative.get('benefits', {}).items()):
                     col_a, col_b = st.columns([4, 1])
                     col_a.write(f"- **{benefit['name']}**")
                     if col_b.button("Slett", key=f"del_ben_{ben_id}"):
-                        benefits_to_delete = ben_id
-                
-                if benefits_to_delete:
-                    del data['initiatives'][current_project_id]['benefits'][benefits_to_delete]
-                    persist_data()
-                    st.rerun()
+                        st.session_state.pending_benefit_delete = ben_id
+                        st.rerun()
             else:
                 st.info("Ingen gevinster registrert enda.")
         st.markdown("---")

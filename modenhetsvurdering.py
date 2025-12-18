@@ -457,7 +457,7 @@ footer {{visibility: hidden;}}
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# HJELPEFUNKSJONER - KUN EN DEFINISJON AV HVER!
+# HJELPEFUNKSJONER
 # ============================================================================
 def get_score_color(score):
     if score >= 4.5: return COLORS['success']
@@ -1203,6 +1203,16 @@ def show_main_app(data, current_project_id):
         st.markdown(f"## Gevinster for {initiative['name']}")
         st.write(f"**Beskrivelse:** {initiative.get('description', 'Ingen')}")
         st.markdown("---")
+        
+        # Håndter ventende sletting FØRST, før noe annet vises
+        if 'delete_benefit_id' in st.session_state and st.session_state.delete_benefit_id:
+            ben_id_to_delete = st.session_state.delete_benefit_id
+            st.session_state.delete_benefit_id = None
+            if ben_id_to_delete in data['initiatives'][current_project_id].get('benefits', {}):
+                del data['initiatives'][current_project_id]['benefits'][ben_id_to_delete]
+                persist_data()
+                st.rerun()
+        
         col1, col2 = st.columns([2, 1])
         with col2:
             st.markdown("### Legg til gevinst")
@@ -1210,9 +1220,9 @@ def show_main_app(data, current_project_id):
                 new_benefit = st.text_input("Gevinstnavn", placeholder="F.eks. Redusert reisetid")
                 if st.form_submit_button("Legg til", use_container_width=True):
                     if new_benefit:
-                        if 'benefits' not in initiative:
-                            initiative['benefits'] = {}
-                        initiative['benefits'][datetime.now().strftime("%Y%m%d%H%M%S%f")] = {
+                        if 'benefits' not in data['initiatives'][current_project_id]:
+                            data['initiatives'][current_project_id]['benefits'] = {}
+                        data['initiatives'][current_project_id]['benefits'][datetime.now().strftime("%Y%m%d%H%M%S%f")] = {
                             'name': new_benefit,
                             'created': datetime.now().isoformat()
                         }
@@ -1220,22 +1230,16 @@ def show_main_app(data, current_project_id):
                         st.rerun()
         with col1:
             st.markdown("### Registrerte gevinster")
-            if initiative.get('benefits'):
-                # Håndter ventende sletting fra forrige rerun
-                if 'pending_benefit_delete' in st.session_state:
-                    ben_to_del = st.session_state.pending_benefit_delete
-                    if ben_to_del in data['initiatives'][current_project_id].get('benefits', {}):
-                        del data['initiatives'][current_project_id]['benefits'][ben_to_del]
-                        persist_data()
-                    del st.session_state.pending_benefit_delete
-                    st.rerun()
-                
-                for ben_id, benefit in list(initiative.get('benefits', {}).items()):
+            benefits = data['initiatives'][current_project_id].get('benefits', {})
+            if benefits:
+                for ben_id, benefit in list(benefits.items()):
                     col_a, col_b = st.columns([4, 1])
                     col_a.write(f"- **{benefit['name']}**")
-                    if col_b.button("Slett", key=f"del_ben_{ben_id}"):
-                        st.session_state.pending_benefit_delete = ben_id
-                        st.rerun()
+                    
+                    def delete_benefit(bid=ben_id):
+                        st.session_state.delete_benefit_id = bid
+                    
+                    col_b.button("Slett", key=f"del_ben_{ben_id}", on_click=delete_benefit, args=(ben_id,))
             else:
                 st.info("Ingen gevinster registrert enda.")
         st.markdown("---")
@@ -1246,19 +1250,26 @@ def show_main_app(data, current_project_id):
                 new_code = st.text_input("Ny tilgangskode", type="password")
                 new_code_confirm = st.text_input("Bekreft ny kode", type="password")
                 if st.form_submit_button("Oppdater kode"):
-                    if current_code != initiative.get('access_code', ''):
+                    if current_code != data['initiatives'][current_project_id].get('access_code', ''):
                         st.error("Feil nåværende kode")
                     elif new_code != new_code_confirm:
                         st.error("Nye koder matcher ikke")
                     else:
-                        initiative['access_code'] = new_code
+                        data['initiatives'][current_project_id]['access_code'] = new_code
                         persist_data()
                         st.success("Tilgangskode oppdatert!")
         with st.expander("Slett prosjekt", expanded=False):
             st.warning("Dette vil slette prosjektet og alle tilhørende data permanent!")
-            confirm_name = st.text_input("Skriv prosjektnavnet for å bekrefte sletting")
-            if st.button("Slett prosjekt permanent", type="primary"):
-                if confirm_name == initiative['name']:
+            confirm_name = st.text_input("Skriv prosjektnavnet for å bekrefte sletting", key="confirm_delete_name")
+            
+            def delete_project():
+                st.session_state.delete_project_confirmed = True
+            
+            st.button("Slett prosjekt permanent", type="primary", on_click=delete_project)
+            
+            if st.session_state.get('delete_project_confirmed'):
+                st.session_state.delete_project_confirmed = False
+                if confirm_name == data['initiatives'][current_project_id]['name']:
                     del data['initiatives'][current_project_id]
                     persist_data()
                     del st.session_state['current_project']

@@ -99,7 +99,7 @@ ROLES = {
         "recommended_questions": {
             "Planlegging": [2, 3, 4, 6, 9, 10, 11, 12, 13, 16, 17, 20, 21],
             "Gjennomføring": [2, 6, 9, 10, 11, 12, 13, 16, 17, 20, 21],
-            "Realisering": [1, 2, 4, 3, 6, 7, 8, 9, 10, 11, 12, 13,15, 16, 17, 20, 21,22],
+            "Realisering": [1, 2, 4, 3, 6, 7, 8, 9, 10, 11, 12, 13,15, 16, 17, 20, 21, 22],
             "Realisert": [1, 2, 6, 8, 11, 12, 13, 16, 17, 20, 21]
         }
     },
@@ -384,6 +384,7 @@ def merge_data(file_data, session_data):
         elif session_init is None:
             merged['initiatives'][init_id] = file_init
         else:
+            # Session data has priority - use it as base
             merged_init = session_init.copy()
             file_interviews = file_init.get('interviews', {})
             session_interviews = session_init.get('interviews', {})
@@ -399,7 +400,8 @@ def merge_data(file_data, session_data):
                     merged_interviews[iid] = session_interviews[iid]
             
             merged_init['interviews'] = merged_interviews
-            merged_init['benefits'] = {**file_init.get('benefits', {}), **session_init.get('benefits', {})}
+            # VIKTIG: Bruk session_init benefits direkte (ikke merge) slik at slettinger beholdes
+            merged_init['benefits'] = session_init.get('benefits', {})
             merged['initiatives'][init_id] = merged_init
     
     return merged
@@ -1246,33 +1248,34 @@ def show_main_app(data, current_project_id):
                 new_benefit = st.text_input("Gevinstnavn", placeholder="F.eks. Redusert reisetid")
                 if st.form_submit_button("Legg til", use_container_width=True):
                     if new_benefit:
-                        if 'benefits' not in data['initiatives'][current_project_id]:
-                            data['initiatives'][current_project_id]['benefits'] = {}
-                        data['initiatives'][current_project_id]['benefits'][datetime.now().strftime("%Y%m%d%H%M%S%f")] = {
+                        if 'benefits' not in st.session_state.app_data['initiatives'][current_project_id]:
+                            st.session_state.app_data['initiatives'][current_project_id]['benefits'] = {}
+                        ben_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
+                        st.session_state.app_data['initiatives'][current_project_id]['benefits'][ben_id] = {
                             'name': new_benefit,
                             'created': datetime.now().isoformat()
                         }
-                        persist_data()
+                        save_data(st.session_state.app_data)
                         st.rerun()
             
-            # Slett gevinst - pålitelig med form
+            # Slett gevinst
             st.markdown("### Slett gevinst")
-            benefits = data['initiatives'][current_project_id].get('benefits', {})
+            benefits = st.session_state.app_data['initiatives'][current_project_id].get('benefits', {})
             if benefits:
                 benefit_options = {benefit['name']: ben_id for ben_id, benefit in benefits.items()}
                 with st.form("delete_benefit_form"):
                     selected_benefit = st.selectbox("Velg gevinst å slette", options=list(benefit_options.keys()))
                     if st.form_submit_button("Slett valgt gevinst", type="primary", use_container_width=True):
                         ben_id_to_delete = benefit_options[selected_benefit]
-                        del data['initiatives'][current_project_id]['benefits'][ben_id_to_delete]
-                        persist_data()
+                        del st.session_state.app_data['initiatives'][current_project_id]['benefits'][ben_id_to_delete]
+                        save_data(st.session_state.app_data)
                         st.rerun()
             else:
                 st.info("Ingen gevinster å slette")
         
         with col1:
             st.markdown("### Registrerte gevinster")
-            benefits = data['initiatives'][current_project_id].get('benefits', {})
+            benefits = st.session_state.app_data['initiatives'][current_project_id].get('benefits', {})
             if benefits:
                 for ben_id, benefit in benefits.items():
                     st.markdown(f"- **{benefit['name']}**")
@@ -1288,13 +1291,13 @@ def show_main_app(data, current_project_id):
                 new_code = st.text_input("Ny tilgangskode", type="password")
                 new_code_confirm = st.text_input("Bekreft ny kode", type="password")
                 if st.form_submit_button("Oppdater kode"):
-                    if current_code != data['initiatives'][current_project_id].get('access_code', ''):
+                    if current_code != st.session_state.app_data['initiatives'][current_project_id].get('access_code', ''):
                         st.error("Feil nåværende kode")
                     elif new_code != new_code_confirm:
                         st.error("Nye koder matcher ikke")
                     else:
-                        data['initiatives'][current_project_id]['access_code'] = new_code
-                        persist_data()
+                        st.session_state.app_data['initiatives'][current_project_id]['access_code'] = new_code
+                        save_data(st.session_state.app_data)
                         st.success("Tilgangskode oppdatert!")
         
         with st.expander("Slett prosjekt", expanded=False):
@@ -1303,8 +1306,8 @@ def show_main_app(data, current_project_id):
                 confirm_name = st.text_input(f"Skriv '{initiative['name']}' for å bekrefte sletting")
                 if st.form_submit_button("Slett prosjekt permanent", type="primary"):
                     if confirm_name == initiative['name']:
-                        del data['initiatives'][current_project_id]
-                        persist_data()
+                        del st.session_state.app_data['initiatives'][current_project_id]
+                        save_data(st.session_state.app_data)
                         if 'current_project' in st.session_state:
                             del st.session_state['current_project']
                         st.rerun()

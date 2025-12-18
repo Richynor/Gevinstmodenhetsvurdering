@@ -1221,13 +1221,15 @@ def show_main_app(data, current_project_id):
         with col1:
             st.markdown("### Registrerte gevinster")
             if initiative.get('benefits'):
-                for ben_id, benefit in initiative.get('benefits', {}).items():
-                    col_a, col_b = st.columns([4, 1])
-                    col_a.write(f"- **{benefit['name']}**")
-                    if col_b.button("Slett", key=f"del_ben_{ben_id}"):
-                        del initiative['benefits'][ben_id]
-                        persist_data()
-                        st.rerun()
+                benefits_to_delete = None
+                for ben_id, benefit in list(initiative.get('benefits', {}).items()):
+                if col_b.button("Slett", key=f"del_ben_{ben_id}"):
+                benefits_to_delete = ben_id
+
+                if benefits_to_delete:
+                del data['initiatives'][current_project_id]['benefits'][benefits_to_delete]  # Direkte på data
+                persist_data()
+                st.rerun()
             else:
                 st.info("Ingen gevinster registrert enda.")
         st.markdown("---")

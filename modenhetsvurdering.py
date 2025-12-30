@@ -15,9 +15,6 @@ except ImportError:
     pass
 
 import streamlit as st
-import json
-import requests
-import base64
 import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
@@ -27,6 +24,9 @@ import os
 from io import BytesIO
 import uuid
 import shutil
+import json
+import requests
+import base64
 
 # Filelock er valgfri
 FILELOCK_AVAILABLE = False

@@ -15,6 +15,9 @@ except ImportError:
     pass
 
 import streamlit as st
+import json
+import requests
+import base64
 import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
@@ -43,6 +46,98 @@ st.set_page_config(
 DATA_FILE = "modenhet_data.pkl"
 LOCK_FILE = "modenhet_data.pkl.lock"
 BACKUP_DIR = "backups"
+
+class GitHubStorage:
+    """
+    Lagrer data i et GitHub repository som JSON-fil.
+    """
+    
+    def __init__(self, token: str, repo: str, owner: str, filename: str = "modenhet_data.json"):
+        self.token = token
+        self.repo = repo
+        self.owner = owner
+        self.filename = filename
+        self.api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{filename}"
+        self.headers = {
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github.v3+json",
+            "Content-Type": "application/json"
+        }
+        self._sha = None
+    
+    def load_data(self) -> dict:
+        """Last data fra GitHub repository"""
+        try:
+            response = requests.get(self.api_url, headers=self.headers, timeout=10)
+            
+            if response.status_code == 200:
+                content = response.json()
+                self._sha = content.get("sha")
+                content_b64 = content.get("content", "")
+                content_json = base64.b64decode(content_b64).decode("utf-8")
+                return json.loads(content_json)
+            elif response.status_code == 404:
+                self._sha = None
+                return {"initiatives": {}}
+            else:
+                return None
+                
+        except Exception as e:
+            return None
+    
+    def save_data(self, data: dict) -> bool:
+        """Lagre data til GitHub repository"""
+        try:
+            data["_metadata"] = {
+                "last_updated": datetime.now().isoformat(),
+                "version": "3.0"
+            }
+            
+            json_str = json.dumps(data, indent=2, ensure_ascii=False)
+            content_b64 = base64.b64encode(json_str.encode("utf-8")).decode("utf-8")
+            
+            payload = {
+                "message": f"Data oppdatert {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                "content": content_b64
+            }
+            
+            if self._sha:
+                payload["sha"] = self._sha
+            
+            response = requests.put(self.api_url, headers=self.headers, json=payload, timeout=15)
+            
+            if response.status_code in [200, 201]:
+                result = response.json()
+                self._sha = result.get("content", {}).get("sha")
+                return True
+            else:
+                return False
+                
+        except Exception as e:
+            return False
+
+
+@st.cache_resource
+def get_github_storage():
+    """Initialiser GitHub storage hvis konfigurert"""
+    try:
+        if hasattr(st, 'secrets') and 'github' in st.secrets:
+            github_config = st.secrets.github
+            storage = GitHubStorage(
+                token=github_config.token,
+                repo=github_config.repo,
+                owner=github_config.owner,
+                filename=github_config.get("filename", "modenhet_data.json")
+            )
+            return storage
+    except Exception as e:
+        pass
+    return None
+
+
+def is_github_enabled():
+    """Sjekk om GitHub-lagring er aktivert"""
+    return get_github_storage() is not None
 
 # ============================================================================
 # FLERBRUKER-STØTTE
@@ -312,6 +407,16 @@ def create_backup():
             print(f"Backup feilet: {e}")
 
 def load_data():
+   # Prøv GitHub først hvis konfigurert
+    github_storage = get_github_storage()
+    if github_storage:
+        github_data = github_storage.load_data()
+        if github_data is not None:
+            if 'initiatives' not in github_data:
+                github_data['initiatives'] = {}
+            return github_data
+    
+    # Fallback til lokal fil
     data_file = get_data_file()
     if os.path.exists(data_file):
         try:
@@ -335,6 +440,12 @@ def load_data():
     return {'initiatives': {}}
 
 def save_data(data):
+     # Lagre til GitHub hvis konfigurert
+    github_storage = get_github_storage()
+    if github_storage:
+        github_storage.save_data(data)
+    
+    # Lagre også lokalt som backup
     data_file = get_data_file()
     if FILELOCK_AVAILABLE:
         lock = FileLock(LOCK_FILE, timeout=10)
@@ -409,6 +520,11 @@ def merge_data(file_data, session_data):
 def persist_data():
     data_file = get_data_file()
     
+    # Lagre til GitHub hvis konfigurert
+    github_storage = get_github_storage()
+    if github_storage:
+        github_storage.save_data(st.session_state.app_data)
+    
     try:
         if FILELOCK_AVAILABLE:
             lock = FileLock(LOCK_FILE, timeout=10)
@@ -432,7 +548,6 @@ def persist_data():
             st.session_state.data_loaded_at = datetime.now()
     except Exception as e:
         st.error(f"Feil ved lagring: {e}")
-
 # ============================================================================
 # STYLING
 # ============================================================================
@@ -1131,6 +1246,23 @@ def generate_pdf_report(initiative, stats):
 # ============================================================================
 # HOVEDAPPLIKASJON
 # ============================================================================
+def show_storage_status():
+    """Vis status for lagring i sidebar"""
+    if is_github_enabled():
+        st.sidebar.markdown("""
+        <div style="padding:0.5rem 1rem;border-radius:6px;margin-bottom:1rem;background:#DDFAE2;border-left:4px solid #35DE6D;">
+            ☁️ <strong>GitHub skylagring aktiv</strong><br>
+            <small>Data lagres permanent i skyen</small>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.sidebar.markdown("""
+        <div style="padding:0.5rem 1rem;border-radius:6px;margin-bottom:1rem;background:#FFF3CD;border-left:4px solid #FFA040;">
+            💾 <strong>Lokal lagring</strong><br>
+            <small>⚠️ Data kan gå tapt ved restart</small>
+        </div>
+        """, unsafe_allow_html=True)
+      
 def show_project_selector(data):
     st.markdown(f'''
     <div style="text-align:center;margin-bottom:2rem;">
@@ -1551,6 +1683,7 @@ def show_main_app(data, current_project_id):
                 st.dataframe(pd.DataFrame(interview_data), use_container_width=True)
 
 def main():
+   show_storage_status()  # <-- LEGG TIL DENNE LINJEN
     data = get_data()
     if 'current_project' not in st.session_state:
         show_project_selector(data)

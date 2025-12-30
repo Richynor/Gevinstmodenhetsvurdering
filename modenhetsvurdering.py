@@ -1683,7 +1683,7 @@ def show_main_app(data, current_project_id):
                 st.dataframe(pd.DataFrame(interview_data), use_container_width=True)
 
 def main():
-   show_storage_status()  # <-- LEGG TIL DENNE LINJEN
+    show_storage_status()  
     data = get_data()
     if 'current_project' not in st.session_state:
         show_project_selector(data)
